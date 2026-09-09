@@ -38,19 +38,22 @@ jobs:
         shell: pwsh
         run: |
           $output = Join-Path (Split-Path -Parent $env:GITHUB_WORKSPACE) 'PixelProof发布包'
+          $dist = Join-Path $env:GITHUB_WORKSPACE 'release-dist'
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
           $versioned = Join-Path $output 'PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.zip'
           $stable = Join-Path $output 'PixelProof-Companion-Windows-x64.zip'
           Copy-Item -LiteralPath $versioned -Destination $stable -Force
           $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $stable).Hash.ToLowerInvariant()
           [IO.File]::WriteAllText("$stable.sha256.txt", "$hash  PixelProof-Companion-Windows-x64.zip`n", [Text.UTF8Encoding]::new($false))
+          Copy-Item -LiteralPath $stable,"$stable.sha256.txt",$versioned,(Join-Path $output 'PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.sha256.txt') -Destination $dist -Force
       - uses: actions/upload-artifact@v4
         with:
           name: pixelproof-windows-release
           path: |
-            ../PixelProof发布包/PixelProof-Companion-Windows-x64.zip
-            ../PixelProof发布包/PixelProof-Companion-Windows-x64.zip.sha256.txt
-            ../PixelProof发布包/PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.zip
-            ../PixelProof发布包/PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.sha256.txt
+            release-dist/PixelProof-Companion-Windows-x64.zip
+            release-dist/PixelProof-Companion-Windows-x64.zip.sha256.txt
+            release-dist/PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.zip
+            release-dist/PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.sha256.txt
 
   build-macos:
     runs-on: macos-latest
@@ -94,6 +97,8 @@ jobs:
           OUTPUT="../PixelProof发布包"
           cp "$OUTPUT/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.zip" "$OUTPUT/PixelProof-Companion-macOS.zip"
           (cd "$OUTPUT" && shasum -a 256 PixelProof-Companion-macOS.zip > PixelProof-Companion-macOS.zip.sha256.txt)
+          mkdir -p release-dist
+          cp "$OUTPUT/PixelProof-Companion-macOS.zip" "$OUTPUT/PixelProof-Companion-macOS.zip.sha256.txt" "$OUTPUT/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.zip" "$OUTPUT/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.sha256.txt" release-dist/
       - name: Verify universal macOS runtimes
         shell: bash
         run: |
@@ -107,10 +112,10 @@ jobs:
         with:
           name: pixelproof-macos-release
           path: |
-            ../PixelProof发布包/PixelProof-Companion-macOS.zip
-            ../PixelProof发布包/PixelProof-Companion-macOS.zip.sha256.txt
-            ../PixelProof发布包/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.zip
-            ../PixelProof发布包/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.sha256.txt
+            release-dist/PixelProof-Companion-macOS.zip
+            release-dist/PixelProof-Companion-macOS.zip.sha256.txt
+            release-dist/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.zip
+            release-dist/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.sha256.txt
 
   publish-release:
     runs-on: ubuntu-latest
