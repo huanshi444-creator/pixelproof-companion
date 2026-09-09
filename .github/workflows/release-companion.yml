@@ -1,0 +1,143 @@
+name: Release PixelProof Companion
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the v prefix
+        required: true
+        default: 0.3.0
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node tests/release_static_check.cjs
+      - run: npm run test:companion
+      - id: meta
+        shell: pwsh
+        run: |
+          $version = if ('${{ github.ref_type }}' -eq 'tag') { '${{ github.ref_name }}'.TrimStart('v') } else { '${{ inputs.version }}' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Build Windows portable package
+        shell: pwsh
+        run: ./launcher/build-portable.ps1 '${{ steps.meta.outputs.version }}'
+      - name: Create stable Windows asset
+        shell: pwsh
+        run: |
+          $output = Join-Path (Split-Path -Parent $env:GITHUB_WORKSPACE) 'PixelProof发布包'
+          $versioned = Join-Path $output 'PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.zip'
+          $stable = Join-Path $output 'PixelProof-Companion-Windows-x64.zip'
+          Copy-Item -LiteralPath $versioned -Destination $stable -Force
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $stable).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText("$stable.sha256.txt", "$hash  PixelProof-Companion-Windows-x64.zip`n", [Text.UTF8Encoding]::new($false))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixelproof-windows-release
+          path: |
+            ../PixelProof发布包/PixelProof-Companion-Windows-x64.zip
+            ../PixelProof发布包/PixelProof-Companion-Windows-x64.zip.sha256.txt
+            ../PixelProof发布包/PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.zip
+            ../PixelProof发布包/PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.sha256.txt
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node tests/release_static_check.cjs
+      - run: npm run test:companion
+      - id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download both macOS Node runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          NODE_VERSION="$(node -p 'process.version')"
+          RUNTIME_ROOT="$RUNNER_TEMP/pixelproof-node"
+          mkdir -p "$RUNTIME_ROOT"
+          for ARCH in arm64 x64; do
+            ARCHIVE="node-${NODE_VERSION}-darwin-${ARCH}.tar.gz"
+            curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/${ARCHIVE}" -o "$RUNTIME_ROOT/$ARCHIVE"
+            tar -xzf "$RUNTIME_ROOT/$ARCHIVE" -C "$RUNTIME_ROOT"
+          done
+          echo "PIXELPROOF_NODE_ARM64_BIN=$RUNTIME_ROOT/node-${NODE_VERSION}-darwin-arm64/bin/node" >> "$GITHUB_ENV"
+          echo "PIXELPROOF_NODE_X64_BIN=$RUNTIME_ROOT/node-${NODE_VERSION}-darwin-x64/bin/node" >> "$GITHUB_ENV"
+          echo "PIXELPROOF_NODE_LICENSE=$RUNTIME_ROOT/node-${NODE_VERSION}-darwin-arm64/LICENSE" >> "$GITHUB_ENV"
+      - name: Build universal macOS portable package
+        shell: bash
+        run: |
+          chmod +x launcher-macos/build-macos.sh
+          ./launcher-macos/build-macos.sh '${{ steps.meta.outputs.version }}'
+          OUTPUT="../PixelProof发布包"
+          cp "$OUTPUT/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.zip" "$OUTPUT/PixelProof-Companion-macOS.zip"
+          (cd "$OUTPUT" && shasum -a 256 PixelProof-Companion-macOS.zip > PixelProof-Companion-macOS.zip.sha256.txt)
+      - name: Verify universal macOS runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE="../PixelProof发布包/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}"
+          test -x "$PACKAGE/runtime/node-arm64"
+          test -x "$PACKAGE/runtime/node-x64"
+          file "$PACKAGE/runtime/node-arm64" | grep -q arm64
+          file "$PACKAGE/runtime/node-x64" | grep -q x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixelproof-macos-release
+          path: |
+            ../PixelProof发布包/PixelProof-Companion-macOS.zip
+            ../PixelProof发布包/PixelProof-Companion-macOS.zip.sha256.txt
+            ../PixelProof发布包/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.zip
+            ../PixelProof发布包/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.sha256.txt
+
+  publish-release:
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-macos]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pixelproof-*-release
+          path: dist
+          merge-multiple: true
+      - id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish GitHub Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG='${{ steps.meta.outputs.tag }}'
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "PixelProof Companion $TAG" --notes "Windows 与 macOS 免安装本机伴侣。macOS 稳定包同时支持 Apple Silicon 与 Intel；首次启动请右键 .command 文件并选择打开。"
+          fi

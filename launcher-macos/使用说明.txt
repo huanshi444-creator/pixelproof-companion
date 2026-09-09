@@ -1,0 +1,12 @@
+PixelProof Companion for macOS 0.3.0
+
+本压缩包同时支持 Apple Silicon（M 系列）与 Intel Mac。
+
+1. 完整解压 ZIP，不要只复制 .command 文件。
+2. 首次启动：右键“PixelProof Companion.command”，选择“打开”。
+3. 出现系统确认时再点“打开”。之后可直接双击启动。
+4. 回到 Figma 插件，点击“我已启动，重新检测”。
+5. 需要停止时，双击“Stop PixelProof Companion.command”。
+
+要求：macOS 12 或更高版本，已安装 Google Chrome 或 Microsoft Edge。
+数据：伴侣只监听 localhost:49321，页面抓取、DOM/CSS 和源码扫描均在本机完成。
