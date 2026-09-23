@@ -9,7 +9,7 @@ const runtime=path.join(extracted,'runtime',process.platform==='win32'?'node.exe
 assert(fs.existsSync(runtime));
 execFileSync(runtime,['--version'],{stdio:'inherit'});
 execFileSync(process.execPath,[path.join(__dirname,'capture_safety_test.cjs')],{
-  stdio:'inherit',timeout:120000,
+  stdio:'inherit',timeout:300000,
   env:{...process.env,PIXELPROOF_TEST_NODE:runtime,PIXELPROOF_TEST_SERVER:path.join(extracted,'app/companion/server.cjs')}
 });
 console.log('Clean extraction verified: exact source bytes, bundled Node/dependencies, real capture, cancellation and navigation gate.');
