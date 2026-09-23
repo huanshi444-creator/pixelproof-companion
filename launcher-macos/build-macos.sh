@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
-VERSION="${1:-0.3.0}"
+VERSION="${1:-0.3.1}"
 SCRIPT_DIR="${0:A:h}"
 PROJECT_ROOT="${SCRIPT_DIR:h}"
 OUTPUT_ROOT="${PROJECT_ROOT:h}/PixelProof发布包"
@@ -28,6 +28,7 @@ if [[ -n "${PIXELPROOF_NODE_LICENSE:-}" && -f "$PIXELPROOF_NODE_LICENSE" ]]; the
   cp "$PIXELPROOF_NODE_LICENSE" "$PACKAGE_DIR/runtime/NODE-LICENSE.txt"
 fi
 cp "$PROJECT_ROOT/companion/server.cjs" "$PACKAGE_DIR/app/companion/server.cjs"
+cp "$PROJECT_ROOT/companion/token-evidence.cjs" "$PACKAGE_DIR/app/companion/token-evidence.cjs"
 cp -R "$PROJECT_ROOT/node_modules" "$PACKAGE_DIR/app/node_modules"
 cp "$SCRIPT_DIR/PixelProof Companion.command" "$PACKAGE_DIR/PixelProof Companion.command"
 cp "$SCRIPT_DIR/Stop PixelProof Companion.command" "$PACKAGE_DIR/Stop PixelProof Companion.command"

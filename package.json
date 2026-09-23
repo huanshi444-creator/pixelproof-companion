@@ -1,12 +1,14 @@
 {
   "name": "pixelproof-browser-companion",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Local-only browser capture companion for the PixelProof Figma plugin",
   "scripts": {
     "start": "node companion/server.cjs",
     "test:release": "node tests/release_static_check.cjs",
-    "test:companion": "node tests/companion_capture_test.cjs"
+    "test:companion": "node tests/companion_capture_test.cjs",
+    "test:capture-safety": "node tests/capture_safety_test.cjs",
+    "test:evidence": "node tests/token_evidence_test.cjs"
   },
   "dependencies": {
     "playwright-core": "^1.55.0"

@@ -13,8 +13,8 @@ using Microsoft.Win32;
 [assembly: AssemblyCompany("PixelProof")]
 [assembly: AssemblyProduct("PixelProof Companion")]
 [assembly: AssemblyCopyright("Copyright © PixelProof 2026")]
-[assembly: AssemblyVersion("0.3.0.0")]
-[assembly: AssemblyFileVersion("0.3.0.0")]
+[assembly: AssemblyVersion("0.3.1.0")]
+[assembly: AssemblyFileVersion("0.3.1.0")]
 
 namespace PixelProofCompanion
 {

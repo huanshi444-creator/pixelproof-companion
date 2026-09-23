@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: 0.3.0
+        default: 0.3.1
   push:
     tags:
       - "v*"
@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       - run: node tests/release_static_check.cjs
       - run: npm run test:companion
+      - run: npm run test:evidence
+      - run: npm run test:capture-safety
       - id: meta
         shell: pwsh
         run: |
@@ -34,6 +36,14 @@ jobs:
       - name: Build Windows portable package
         shell: pwsh
         run: ./launcher/build-portable.ps1 '${{ steps.meta.outputs.version }}'
+      - name: Smoke test clean Windows archive
+        shell: pwsh
+        run: |
+          $output = Join-Path (Split-Path -Parent $env:GITHUB_WORKSPACE) 'PixelProof发布包'
+          $extracted = Join-Path $env:RUNNER_TEMP 'pixelproof-extracted-windows'
+          Expand-Archive -LiteralPath (Join-Path $output 'PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}.zip') -DestinationPath $extracted
+          node tests/package_smoke_test.cjs (Join-Path $extracted 'PixelProof-Companion-Windows-x64-v${{ steps.meta.outputs.version }}')
+          if ($LASTEXITCODE -ne 0) { throw 'Extracted Windows package smoke failed' }
       - name: Create stable Windows asset
         shell: pwsh
         run: |
@@ -66,6 +76,8 @@ jobs:
       - run: npm ci
       - run: node tests/release_static_check.cjs
       - run: npm run test:companion
+      - run: npm run test:evidence
+      - run: npm run test:capture-safety
       - id: meta
         shell: bash
         run: |
@@ -99,6 +111,14 @@ jobs:
           (cd "$OUTPUT" && shasum -a 256 PixelProof-Companion-macOS.zip > PixelProof-Companion-macOS.zip.sha256.txt)
           mkdir -p release-dist
           cp "$OUTPUT/PixelProof-Companion-macOS.zip" "$OUTPUT/PixelProof-Companion-macOS.zip.sha256.txt" "$OUTPUT/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.zip" "$OUTPUT/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.sha256.txt" release-dist/
+      - name: Smoke test clean macOS archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXTRACTED="$RUNNER_TEMP/pixelproof-extracted-macos"
+          mkdir -p "$EXTRACTED"
+          ditto -x -k "../PixelProof发布包/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}.zip" "$EXTRACTED"
+          node tests/package_smoke_test.cjs "$EXTRACTED/PixelProof-Companion-macOS-v${{ steps.meta.outputs.version }}"
       - name: Verify universal macOS runtimes
         shell: bash
         run: |
@@ -121,6 +141,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-windows, build-macos]
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           pattern: pixelproof-*-release
@@ -145,5 +166,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
-            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "PixelProof Companion $TAG" --notes "Windows 与 macOS 免安装本机伴侣。macOS 稳定包同时支持 Apple Silicon 与 Intel；首次启动请右键 .command 文件并选择打开。"
+            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "PixelProof Companion $TAG" --notes-file RELEASE_NOTES_v0.3.1.md
           fi

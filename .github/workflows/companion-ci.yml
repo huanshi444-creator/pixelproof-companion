@@ -34,3 +34,5 @@ jobs:
       - run: npm ci
       - run: node tests/release_static_check.cjs
       - run: npm run test:companion
+      - run: npm run test:evidence
+      - run: npm run test:capture-safety

@@ -1,5 +1,5 @@
 param(
-  [string]$Version = '0.3.0'
+  [string]$Version = '0.3.1'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -48,6 +48,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Launcher compilation failed.' }
 Copy-Item -LiteralPath $nodeExecutable -Destination (Join-Path $runtimeDirectory.FullName 'node.exe')
 Copy-Item -LiteralPath $nodeLicense -Destination (Join-Path $runtimeDirectory.FullName 'NODE-LICENSE.txt')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'companion\server.cjs') -Destination (Join-Path $companionDirectory.FullName 'server.cjs')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'companion\token-evidence.cjs') -Destination (Join-Path $companionDirectory.FullName 'token-evidence.cjs')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'node_modules') -Destination (Join-Path $appDirectory.FullName 'node_modules') -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot '使用说明.txt') -Destination (Join-Path $packageDirectory '使用说明.txt')
 

@@ -1,4 +1,4 @@
-PixelProof Companion for macOS 0.3.0
+PixelProof Companion for macOS 0.3.1
 
 本压缩包同时支持 Apple Silicon（M 系列）与 Intel Mac。
 

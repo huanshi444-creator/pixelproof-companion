@@ -11,6 +11,8 @@ PixelProof（设计还原度检查）的本机浏览器伴侣，支持 Windows �
 
 ZIP 必须完整解压，不能直接在压缩包内运行。
 
+当前发布版本：**v0.3.1**，修复检查取消和 Token 越界跳转。详见 [更新说明](RELEASE_NOTES_v0.3.1.md)。老用户请先关闭旧伴侣，再下载并解压新版到新文件夹启动；伴侣不会自动更新。Figma 插件由作者单独发布更新。
+
 ## Windows 使用方法
 
 1. 双击 `PixelProof Companion.exe`。
